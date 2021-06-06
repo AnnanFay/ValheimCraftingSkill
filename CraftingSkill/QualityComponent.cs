@@ -12,7 +12,7 @@ namespace CraftingSkill
 {
     public class QualityComponent : BaseExtendedItemComponent
     {
-        public Quality Quality;
+        public StackableQuality Quality;
 
         private static readonly JSONParameters _saveParams = new JSONParameters { UseExtensions = false };
 
@@ -21,22 +21,38 @@ namespace CraftingSkill
         {
         }
 
-        public void SetQuality(Quality quality)
+        public void SetQuality(StackableQuality quality)
         {
-            Quality = quality;
+            this.Quality = quality;
             Save();
         }
 
         public override string Serialize()
         {
-            return JSON.ToJSON(Quality, _saveParams);
+            return JSON.ToJSON(this.Quality, _saveParams);
         }
 
         public override void Deserialize(string data)
         {
             try
             {
-                Quality = JSON.ToObject<Quality>(data, _saveParams);
+                this.Quality = JSON.ToObject<StackableQuality>(data, _saveParams);
+            }
+            catch (Exception)
+            {
+                LegacyDeserialize(data);
+            }
+        }
+
+        public void LegacyDeserialize(string data)
+        {
+            // Loading list of qualities failed, likely because data is stored as old style singular
+            try
+            {
+                var quality = JSON.ToObject<Quality>(data, _saveParams);
+                var stackable = new StackableQuality();
+                stackable.Qualities.Add(quality);
+                this.Quality = stackable;
             }
             catch (Exception)
             {
@@ -50,21 +66,20 @@ namespace CraftingSkill
             return MemberwiseClone() as BaseExtendedItemComponent;
         }
 
+        public string GetTooltip()
+        {
+            // Non-formated right hand side of "Quality: XXX"
+            return this.Quality.GetTooltip();
+        }
+
         public static void OnNewExtendedItemData(ExtendedItemData itemdata)
         {
             // ZLog.LogError("OnNewExtendedItemData!");
-
-            if (itemdata.GetComponent<QualityComponent>() != null)
-            {
-                return;
-            }
-
             Recipe recipe = ObjectDB.instance.GetRecipe(itemdata);
             if (recipe == null)
             {
                 return;
             }
-
 
             Player player = Player.m_localPlayer;
             if (player == null)
@@ -74,19 +89,32 @@ namespace CraftingSkill
 
             string crafterName = itemdata.GetCrafterName();
             string playerName = player.GetPlayerName();
-            if (crafterName != playerName) {
+            if (crafterName != playerName)
+            {
                 return;
             }
 
+            QualityComponent qualityComponent = itemdata.GetComponent<QualityComponent>();
+            if (qualityComponent != null)
+            {
+                ZLog.LogWarning("qualityComponent is not null during ExtendedItemData creation");
+                return;
+            }
+            
             var quality = new Quality();
             quality.Skill = player.GetSkillFactor((Skills.SkillType)CraftingSkillsPlugin.CRAFTING_SKILL_ID);
+            quality.Quantity = itemdata.m_stack;
 
             CraftingStation station = player.GetCurrentCraftingStation();
-            if (station) {
+            if (station)
+            {
                 quality.StationLevel = station.GetLevel();
             }
             
-            itemdata.AddComponent<QualityComponent>().SetQuality(quality);
+            var qc = new StackableQuality();
+            qc.Qualities.Add(quality);
+
+            itemdata.AddComponent<QualityComponent>().SetQuality(qc);
         }
 
         public static void OnLoadExtendedItemData(ExtendedItemData itemdata)

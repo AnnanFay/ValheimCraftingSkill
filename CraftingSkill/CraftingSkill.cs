@@ -82,10 +82,11 @@ namespace CraftingSkill
             {
                 QualityComponent qualityComp = item.Extended()?.GetComponent<QualityComponent>();
                 if(qualityComp != null) {
+                    var qcTooltip = qualityComp.GetTooltip();
                     __result += String.Format(
-                        "\n{0}: <color=orange>Level {1}</color>",
+                        "\n{0}: <color=orange>{1}</color>",
                         CraftQualityLabel,
-                        (qualityComp.Quality.Skill * 100f).ToString("0")
+                        qcTooltip
                     );
                 }
                 Recipe recipe = ObjectDB.instance.GetRecipe(item);
