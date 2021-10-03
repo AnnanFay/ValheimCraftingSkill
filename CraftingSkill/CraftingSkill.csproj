@@ -76,7 +76,8 @@
     <Reference Include="ExtendedItemDataFramework">
       <HintPath>..\..\ValheimLibs\ExtendedItemDataFramework.dll</HintPath>
     </Reference>
-    <Reference Include="fastJSON">
+    <Reference Include="fastJSON, Version=2.4.0.0, Culture=neutral, PublicKeyToken=6b75a806b86095cd, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\ValheimLibs\fastJSON.dll</HintPath>
     </Reference>
     <Reference Include="HarmonyXInterop">
@@ -136,11 +137,16 @@
     <Compile Include="QualityComponent.cs" />
     <Compile Include="StackableQuality.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\ValheimLibs\fastJSON.dll">
+      <Link>fastJSON.dll</Link>
+    </EmbeddedResource>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>
-      xcopy /y /d  "$(TargetDir)CraftingSkill.dll" "M:\Valheim\Valheim_solo\BepInEx\plugins"
-      xcopy /y /d  "$(ProjectDir)CraftingSkillIcon.png" "M:\Valheim\Valheim_solo\BepInEx\plugins"
+      xcopy /y /d  "$(TargetDir)CraftingSkill.dll" "M:\SteamLibrary\SteamApps\common\Valheim\BepInEx\plugins\CraftingSkill"
+      xcopy /y /d  "$(ProjectDir)CraftingSkillIcon.png" "M:\SteamLibrary\SteamApps\common\Valheim\BepInEx\plugins\CraftingSkill"
     </PostBuildEvent>
   </PropertyGroup>
 </Project>

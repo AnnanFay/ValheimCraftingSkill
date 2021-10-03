@@ -22,12 +22,46 @@ namespace CraftingSkill
     {
         public const String MOD_ID = "annanfay.mod.crafting_skill";
         public const string MOD_NAME = "CraftingSkill";
-        public const string MOD_VERSION = "0.0.1";
+        public const string MOD_VERSION = "0.0.2";
         public const int CRAFTING_SKILL_ID = 1605;
 
         Harmony harmony;
 
         private static CraftingConfig config = new CraftingConfig();
+
+        public CraftingSkillsPlugin() {
+            LoadEmbeddedAssembly("fastJSON.dll");
+        }
+
+        private static void LoadEmbeddedAssembly(string assemblyName)
+        {
+            //  RandyKnapp https://github.com/RandyKnapp/ValheimMods/blob/719e1a6dc419f9075c46b3eb4e3eb53285b7ffda/EpicLoot-Addon-Helheim/Helheim.cs#L58
+            var stream = GetManifestResourceStream(assemblyName);
+            if (stream == null)
+            {
+                Debug.LogError($"Could not load embedded assembly ({assemblyName})!");
+                return;
+            }
+
+            using (stream)
+            {
+                var data = new byte[stream.Length];
+                stream.Read(data, 0, data.Length);
+                Assembly.Load(data);
+            }
+        }
+
+        public static Stream GetManifestResourceStream(string filename)
+        {
+            var assembly = Assembly.GetCallingAssembly();
+            var fullname = assembly.GetManifestResourceNames().SingleOrDefault(x => x.EndsWith(filename));
+            if (!string.IsNullOrEmpty(fullname))
+            {
+                return assembly.GetManifestResourceStream(fullname);
+            }
+
+            return null;
+        }
 
         void Awake()
         {
@@ -36,7 +70,7 @@ namespace CraftingSkill
             harmony = new Harmony(MOD_ID);
             harmony.PatchAll();
 
-            SkillInjector.RegisterNewSkill(CRAFTING_SKILL_ID, "Crafting", "Describes crafting ability", 1.0f, LoadIconTexture(), Skills.SkillType.Unarmed);
+            SkillInjector.RegisterNewSkill(CRAFTING_SKILL_ID, "Crafting", "Craft higher quality items as you level", 1.0f, LoadIconTexture(), Skills.SkillType.Unarmed);
 
             ExtendedItemData.LoadExtendedItemData += QualityComponent.OnNewExtendedItemData;
             ExtendedItemData.NewExtendedItemData += QualityComponent.OnNewExtendedItemData;
@@ -177,6 +211,8 @@ namespace CraftingSkill
                     return config.TierModifierWorkbench;
                 case "$piece_cauldron":
                     return config.TierModifierCauldron;
+                case "$piece_oven":
+                    return config.TierModifierOven;
                 case "$piece_stonecutter":
                     return config.TierModifierStonecutter;
                 case "$piece_artisanstation":
@@ -246,7 +282,10 @@ namespace CraftingSkill
                 // # - identifier: `$piece_workbench` in game name: Workbench
                 // # - identifier: `$piece_cauldron` in game name: Cauldron
                 // # - identifier: `$piece_stonecutter` in game name: Stonecutter
-                // Also $piece_artisanstation (added at some point after above list)
+                // See also (added at some point after above list):
+                //  - $piece_artisanstation
+                //  - $piece_oven
+
                 string craftingStationName = ___m_craftRecipe.m_craftingStation?.m_name;
                 bool isNoStation         = craftingStationName == null;
                 bool isForgeRecipe       = craftingStationName == "$piece_forge";

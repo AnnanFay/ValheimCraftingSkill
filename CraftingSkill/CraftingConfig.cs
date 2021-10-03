@@ -38,7 +38,7 @@ namespace CraftingSkill
         private ConfigVariable<float> __DamageStart           = new ConfigVariable<float>("Attributes", "DamageStart", 0.8f);
         private ConfigVariable<float> __DamageStop            = new ConfigVariable<float>("Attributes", "DamageStop", 1.3f);
 
-        // Cauldron: It's not crafting so no experience, but if we did
+        // Cauldron/Oven: It's not crafting so no experience, but if we did
         // Stonecutter: should probably be 2 or 3, but only thing right now is shitty sharpening stone
         // Artisan: is used by Epic Loot?, will likely have vanilla items in future
         // Guessing at 2 for now
@@ -46,6 +46,7 @@ namespace CraftingSkill
         private ConfigVariable<int> __TierModifierWorkbench   = new ConfigVariable<int>("StationBalancing", "TierModifierWorkbench", 0);
         private ConfigVariable<int> __TierModifierForge       = new ConfigVariable<int>("StationBalancing", "TierModifierForge", 2);
         private ConfigVariable<int> __TierModifierCauldron    = new ConfigVariable<int>("StationBalancing", "TierModifierCauldron", 3);
+        private ConfigVariable<int> __TierModifierOven        = new ConfigVariable<int>("StationBalancing", "TierModifierOven", 3);
         private ConfigVariable<int> __TierModifierStonecutter = new ConfigVariable<int>("StationBalancing", "TierModifierStonecutter", 1);
         private ConfigVariable<int> __TierModifierArtisan     = new ConfigVariable<int>("StationBalancing", "TierModifierArtisan", 2);
         private ConfigVariable<int> __TierModifierDefault     = new ConfigVariable<int>("StationBalancing", "TierModifierDefault", 0);
@@ -69,7 +70,8 @@ namespace CraftingSkill
         public int TierModifierInventory         {get => __TierModifierInventory.Value; }
         public int TierModifierWorkbench         {get => __TierModifierWorkbench.Value; }
         public int TierModifierForge             {get => __TierModifierForge.Value; }
-        public int TierModifierCauldron          {get => __TierModifierCauldron.Value; }
+        public int TierModifierCauldron          { get => __TierModifierCauldron.Value; }
+        public int TierModifierOven              { get => __TierModifierOven.Value; }
         public int TierModifierStonecutter       {get => __TierModifierStonecutter.Value; }
         public int TierModifierArtisan           {get => __TierModifierArtisan.Value; }
         public int TierModifierDefault           {get => __TierModifierDefault.Value; }
@@ -84,12 +86,23 @@ namespace CraftingSkill
             // Bind<int>("General", "NexusID", NEXUS_ID, "Nexus mod ID for updates");
 
             Assembly assembly = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(a => a.GetName().Name == "ModConfigEnforcer");
-
             if (assembly != null)
             {
-                Debug.Log("[CraftingSkill] Mod Config Enforcer detected, registering mod...");
-                var configManagerType = assembly.GetType("ModConfigEnforcer.ConfigManager");
-                Traverse.Create(configManagerType).Method("RegisterMod", mod_id, config).GetValue(mod_id, config);
+                try
+                {
+                    // Try to register using MCE
+                    Debug.Log("[CraftingSkill] Mod Config Enforcer detected, registering mod...");
+                    var configManagerType = assembly.GetType("ModConfigEnforcer.ConfigManager");
+                    Debug.Log("configManagerType: " + configManagerType.ToString());
+                    var traverse = Traverse.Create(configManagerType);
+                    var serverConfigReceivedDelegateType = (Type)traverse.Type("ServerConfigReceivedDelegate").GetValue();
+                    Type[] paramTypes = { typeof(string), typeof(ConfigFile), serverConfigReceivedDelegateType };
+                    traverse.Method("RegisterMod", paramTypes).GetValue(mod_id, config, null);
+                } catch (Exception e) {
+                    // registering mod failed, API may have changed
+                    // pretend MCE doesn't exist
+                    assembly = null;
+                }
             }
             else
             {
@@ -115,6 +128,7 @@ namespace CraftingSkill
             __TierModifierWorkbench.init(assembly, config, mod_id);
             __TierModifierForge.init(assembly, config, mod_id);
             __TierModifierCauldron.init(assembly, config, mod_id);
+            __TierModifierOven.init(assembly, config, mod_id);
             __TierModifierStonecutter.init(assembly, config, mod_id);
             __TierModifierArtisan.init(assembly, config, mod_id);
             __TierModifierDefault.init(assembly, config, mod_id);

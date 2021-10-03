@@ -13,6 +13,11 @@ namespace CraftingSkill
 
         // Defaults return weighted average over stack
 
+        public StackableQuality()
+        {
+            this.Qualities = new List<Quality>();
+        }
+
         public int Quantity {
             get {
                 return Qualities.Sum(q => q.Quantity);
