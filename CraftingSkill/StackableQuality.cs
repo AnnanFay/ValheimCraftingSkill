@@ -18,42 +18,59 @@ namespace CraftingSkill
             this.Qualities = new List<Quality>();
         }
 
+        public StackableQuality(float skill, int quantity, int stationLevel)
+        {
+            this.Qualities = new List<Quality>();
+
+            var quality = new Quality();
+            quality.Skill = skill;
+            quality.Quantity = quantity;
+            quality.StationLevel = stationLevel;
+
+            Qualities.Add(quality);
+        }
+
         public int Quantity {
             get {
                 return Qualities.Sum(q => q.Quantity);
             }
         }
-        public float Skill {
-            get {
-                return Qualities.Average(q => q.Skill);
+        public float Skill
+        {
+            get
+            {
+                //return Qualities.Average(q => q.Skill);
+                return Qualities.First().Skill;
             }
         }
         public int StationLevel {
-            get {
-                return (int)Qualities.Average(q => q.StationLevel);
+            get
+            {
+                //return (int)Qualities.Average(q => q.StationLevel);
+                return (int)Qualities.First().StationLevel;
             }
         }
         public float Variance {
-            get {
-                return Qualities.Average(q => q.Variance);
+            get
+            {
+                //return Qualities.Average(q => q.Variance);
+                return Qualities.First().Variance;
             }
         }
-        public QualityTier Tier {
-            get {
-                if (Qualities.Count > 0) {
-                    return QualityTier.MIXED;
-                } else {
-                    return Qualities[0].Tier;
-                }
-            }
-        }
-        public string GetTooltip()
+        public string GetTooltip(CraftingConfig config)
         {
-            if (this.Qualities.Count == 1) {
-                return this.Qualities[0].GetTooltip();
-            } else {
+            if (this.Qualities.Count == 1)
+            {
+                return this.Qualities[0].GetTooltip(config);
+            }
+            else
+            {
                 return "Mixed!";
             }
+        }
+        public float ScalingFactor(CraftingConfig config)
+        {
+            return this.Qualities.First().ScalingFactor(config);
         }
     }
 }

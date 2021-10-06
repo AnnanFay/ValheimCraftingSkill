@@ -28,39 +28,10 @@ namespace CraftingSkill
         Harmony harmony;
 
         private static CraftingConfig config = new CraftingConfig();
+        private static Dictionary<string, Texture2D> cachedTextures = new Dictionary<string, Texture2D>();
 
         public CraftingSkillsPlugin() {
             LoadEmbeddedAssembly("fastJSON.dll");
-        }
-
-        private static void LoadEmbeddedAssembly(string assemblyName)
-        {
-            //  RandyKnapp https://github.com/RandyKnapp/ValheimMods/blob/719e1a6dc419f9075c46b3eb4e3eb53285b7ffda/EpicLoot-Addon-Helheim/Helheim.cs#L58
-            var stream = GetManifestResourceStream(assemblyName);
-            if (stream == null)
-            {
-                Debug.LogError($"Could not load embedded assembly ({assemblyName})!");
-                return;
-            }
-
-            using (stream)
-            {
-                var data = new byte[stream.Length];
-                stream.Read(data, 0, data.Length);
-                Assembly.Load(data);
-            }
-        }
-
-        public static Stream GetManifestResourceStream(string filename)
-        {
-            var assembly = Assembly.GetCallingAssembly();
-            var fullname = assembly.GetManifestResourceNames().SingleOrDefault(x => x.EndsWith(filename));
-            if (!string.IsNullOrEmpty(fullname))
-            {
-                return assembly.GetManifestResourceStream(fullname);
-            }
-
-            return null;
         }
 
         void Awake()
@@ -92,7 +63,6 @@ namespace CraftingSkill
             }
         }
         
-        private static Dictionary<string, Texture2D> cachedTextures = new Dictionary<string, Texture2D>();
         private static Texture2D LoadTexture(string filepath)
         {
             if (cachedTextures.ContainsKey(filepath))
@@ -102,6 +72,37 @@ namespace CraftingSkill
             Texture2D texture2D = new Texture2D(0, 0);
             ImageConversion.LoadImage(texture2D, File.ReadAllBytes(filepath));
             return texture2D;
+        }
+
+        private static void LoadEmbeddedAssembly(string assemblyName)
+        {
+            //  RandyKnapp https://github.com/RandyKnapp/ValheimMods/blob/719e1a6dc419f9075c46b3eb4e3eb53285b7ffda/EpicLoot-Addon-Helheim/Helheim.cs#L58
+            var stream = GetManifestResourceStream(assemblyName);
+            if (stream == null)
+            {
+                Debug.LogError($"Could not load embedded assembly ({assemblyName})!");
+                return;
+            }
+
+            using (stream)
+            {
+                var data = new byte[stream.Length];
+                stream.Read(data, 0, data.Length);
+                Assembly.Load(data);
+            }
+        }
+
+        public static Stream GetManifestResourceStream(string filename)
+        {
+            //  RandyKnapp https://github.com/RandyKnapp/ValheimMods/blob/719e1a6dc419f9075c46b3eb4e3eb53285b7ffda/EpicLoot-Addon-Helheim/Helheim.cs
+            var assembly = Assembly.GetCallingAssembly();
+            var fullname = assembly.GetManifestResourceNames().SingleOrDefault(x => x.EndsWith(filename));
+            if (!string.IsNullOrEmpty(fullname))
+            {
+                return assembly.GetManifestResourceStream(fullname);
+            }
+
+            return null;
         }
 
         [HarmonyPatch(typeof(ItemDrop.ItemData))]
@@ -114,9 +115,11 @@ namespace CraftingSkill
             [HarmonyPatch("GetTooltip", typeof(ItemDrop.ItemData), typeof(int), typeof(bool))]
             static void GetTooltip(ItemDrop.ItemData item, int qualityLevel, bool crafting, ref string __result)
             {
+                // Display craft quality if item has it
+                // Then display crafting experience if there is a crafting recipe for the item
                 QualityComponent qualityComp = item.Extended()?.GetComponent<QualityComponent>();
                 if(qualityComp != null) {
-                    var qcTooltip = qualityComp.GetTooltip();
+                    var qcTooltip = qualityComp.GetTooltip(config);
                     __result += String.Format(
                         "\n{0}: <color=orange>{1}</color>",
                         CraftQualityLabel,
@@ -139,9 +142,9 @@ namespace CraftingSkill
                 if (qualityComp == null) {
                     return 1.0f;
                 }
-                float scalingFactor = min + (max - min) * qualityComp.Quality.Skill;
-                return scalingFactor;
+                return min + (max - min) * qualityComp.Quality.ScalingFactor(config);
             }
+
 
             // First override the simple methods which returns floats
                 // public float GetArmor(int quality){}
@@ -198,6 +201,8 @@ namespace CraftingSkill
                 __result.Modify(scalingFactor);
             }
         }
+
+        // Below code handles gaining experience when crafting
 
         public static float GetCraftTierMod(Recipe recipe)
         {
@@ -295,7 +300,7 @@ namespace CraftingSkill
                 if (isWorkbenchRecipe || isForgeRecipe || isNoStation || isStonecutterRecipe || isArtisanRecipe) {
                     float craftExperience = GetCraftExperience(___m_craftRecipe, craftLevel);
                     player.RaiseSkill((Skills.SkillType)CRAFTING_SKILL_ID, craftExperience);
-                    float SkillLevel = player.GetSkillFactor((Skills.SkillType)CRAFTING_SKILL_ID);
+                    // float SkillLevel = player.GetSkillFactor((Skills.SkillType)CRAFTING_SKILL_ID);
                     // ZLog.LogError($"Craft Succeeded => exp={craftExperience}, {SkillLevel}");
                 }
             }

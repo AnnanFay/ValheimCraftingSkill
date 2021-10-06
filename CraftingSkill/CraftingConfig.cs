@@ -16,10 +16,10 @@ namespace CraftingSkill
 {
     public class CraftingConfig
     {
-        // public int NEXUS_ID = 0;
+        private ConfigVariable<bool> __QuantisedQuality       = new ConfigVariable<bool>("General", "QuantisedQuality", false);
+        private ConfigVariable<float> __StochasticVariance    = new ConfigVariable<float>("General", "StochasticVariance", 0.0f);
 
         // Experience for crafting
-
         private ConfigVariable<float> __ExpScapeTier          = new ConfigVariable<float>("ExpGain", "ExpScapeTier", 1.0f);
         private ConfigVariable<float> __ExpScapePower         = new ConfigVariable<float>("ExpGain", "ExpScapePower", 2.0f);
         private ConfigVariable<float> __ExpScapeLinear        = new ConfigVariable<float>("ExpGain", "ExpScapeLinear", 0.16f);
@@ -52,6 +52,8 @@ namespace CraftingSkill
         private ConfigVariable<int> __TierModifierDefault     = new ConfigVariable<int>("StationBalancing", "TierModifierDefault", 0);
 
         // Utility getters
+        public bool QuantisedQuality             {get => __QuantisedQuality.Value; }
+        public float StochasticVariance          {get => __StochasticVariance.Value; }
         public float ExpScapeTier                {get => __ExpScapeTier.Value; }
         public float ExpScapePower               {get => __ExpScapePower.Value; }
         public float ExpScapeLinear              {get => __ExpScapeLinear.Value; }
@@ -70,8 +72,8 @@ namespace CraftingSkill
         public int TierModifierInventory         {get => __TierModifierInventory.Value; }
         public int TierModifierWorkbench         {get => __TierModifierWorkbench.Value; }
         public int TierModifierForge             {get => __TierModifierForge.Value; }
-        public int TierModifierCauldron          { get => __TierModifierCauldron.Value; }
-        public int TierModifierOven              { get => __TierModifierOven.Value; }
+        public int TierModifierCauldron          {get => __TierModifierCauldron.Value; }
+        public int TierModifierOven              {get => __TierModifierOven.Value; }
         public int TierModifierStonecutter       {get => __TierModifierStonecutter.Value; }
         public int TierModifierArtisan           {get => __TierModifierArtisan.Value; }
         public int TierModifierDefault           {get => __TierModifierDefault.Value; }
@@ -83,8 +85,6 @@ namespace CraftingSkill
 
         public void InitConfig(string mod_id, ConfigFile config)
         {
-            // Bind<int>("General", "NexusID", NEXUS_ID, "Nexus mod ID for updates");
-
             Assembly assembly = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(a => a.GetName().Name == "ModConfigEnforcer");
             if (assembly != null)
             {
@@ -109,6 +109,8 @@ namespace CraftingSkill
                 Debug.Log("Mod Config Enforcer not detected.");
             }
 
+            __QuantisedQuality.init(assembly, config, mod_id);
+            __StochasticVariance.init(assembly, config, mod_id);
             __ExpScapeTier.init(assembly, config, mod_id);
             __ExpScapePower.init(assembly, config, mod_id);
             __ExpScapeLinear.init(assembly, config, mod_id);

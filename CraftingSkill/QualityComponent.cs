@@ -66,10 +66,10 @@ namespace CraftingSkill
             return MemberwiseClone() as BaseExtendedItemComponent;
         }
 
-        public string GetTooltip()
+        public string GetTooltip(CraftingConfig config)
         {
             // Non-formated right hand side of "Quality: XXX"
-            return this.Quality.GetTooltip();
+            return this.Quality.GetTooltip(config);
         }
 
         public static void OnNewExtendedItemData(ExtendedItemData itemdata)
@@ -100,21 +100,16 @@ namespace CraftingSkill
                 ZLog.LogWarning("qualityComponent is not null during ExtendedItemData creation");
                 return;
             }
-            
-            var quality = new Quality();
-            quality.Skill = player.GetSkillFactor((Skills.SkillType)CraftingSkillsPlugin.CRAFTING_SKILL_ID);
-            quality.Quantity = itemdata.m_stack;
+
+            var skill = player.GetSkillFactor((Skills.SkillType)CraftingSkillsPlugin.CRAFTING_SKILL_ID);
+            var quantity = itemdata.m_stack;
 
             CraftingStation station = player.GetCurrentCraftingStation();
-            if (station)
-            {
-                quality.StationLevel = station.GetLevel();
-            }
-            
-            var qc = new StackableQuality();
-            qc.Qualities.Add(quality);
+            int stationLevel = station == null ? 0 : station.GetLevel();
 
-            itemdata.AddComponent<QualityComponent>().SetQuality(qc);
+            var quality = new StackableQuality(skill, quantity, stationLevel);
+
+            itemdata.AddComponent<QualityComponent>().SetQuality(quality);
         }
 
         public static void OnLoadExtendedItemData(ExtendedItemData itemdata)

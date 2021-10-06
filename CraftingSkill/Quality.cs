@@ -6,50 +6,16 @@ using UnityEngine;
 
 namespace CraftingSkill
 {
-    [Serializable]
-    public enum QualityTier
-    {
-        MIXED        = 0,
-        AWFUL        = 1,
-        POOR         = 2,
-        NORMAL       = 3,
-        FINE         = 4,
-        SUPERIOR     = 5,
-        EXCEPTIONAL  = 6,
-        MASTERWORK   = 7,
-        ARTIFACT     = 8
-    }
-
-    // Extension method to QualityTier enum
-    public static class _QualityTier
-    {
-        public static string GetTooltip(this QualityTier tier) {
-            switch ( tier ) {
-                case QualityTier.MIXED:       return "Mixed";
-                case QualityTier.AWFUL:       return "Awful";
-                case QualityTier.POOR:        return "Poor";
-                case QualityTier.NORMAL:      return "Normal";
-                case QualityTier.FINE:        return "Fine";
-                case QualityTier.SUPERIOR:    return "Superior";
-                case QualityTier.EXCEPTIONAL: return "Exceptional";
-                case QualityTier.MASTERWORK:  return "Masterwork";
-                case QualityTier.ARTIFACT:    return "Artifact";
-            }
-            return "UNKNOWN";
-        }
-    }
 
     [Serializable]
     public class Quality
     {
         // Skill level when item is created
         public float Skill = 0;
-        // Level of station used to create item
-        public int StationLevel = 0;
-        // Quantised item quality
-        public QualityTier Tier = QualityTier.NORMAL;
         // So we can handle stack merges
         public int Quantity = 1;
+        // Level of station used to create item
+        public int StationLevel = 0;
         // For random outcomes
         public float Variance;
 
@@ -57,13 +23,58 @@ namespace CraftingSkill
         {
             Variance = UnityEngine.Random.value;
         }
-        public string GetTooltip()
+
+        public string GetTooltip(CraftingConfig config)
         {
+            float factor = ScalingFactor(config);
+            if (config.QuantisedQuality)
+            {
+                QualityTier tier = GetQualityTier(factor);
+                factor = tier.GetFactor();
+                return String.Format(
+                    "{0} ({1})",
+                    GetQualityTier(this.Skill).GetTooltip(),
+                    (factor * 100f).ToString("0")
+                );
+            }
+
             return String.Format(
-                "{0} ({1})",
-                this.Tier.GetTooltip(),
-                (this.Skill * 100f).ToString("0")
+                "{0} / 100",
+                (factor * 100f).ToString("0")
             );
+        }
+
+        public float ScalingFactor(CraftingConfig config)
+        {
+            var factor = this.Skill;
+
+            if (config.StochasticVariance > 0)
+            {
+                // map 0,1 to -1,+1
+                var variance = 2.0f * (this.Variance - 0.5f);
+                // scale by config, add to factor
+                factor += config.StochasticVariance * variance;
+                // clamp invalid values (level 0 and 100)
+                factor = Mathf.Clamp(factor, 0.0f, 1.0f);
+            }
+
+            if (config.QuantisedQuality)
+            {
+                QualityTier tier = GetQualityTier(factor);
+                factor = tier.GetFactor();
+            }
+            return factor;
+        }
+        public static QualityTier GetQualityTier(float factor)
+        {
+            foreach (QualityTier tier in (QualityTier[])Enum.GetValues(typeof(QualityTier)))
+            {
+                if (tier.GetFactor() >= factor)
+                {
+                    return tier;
+                }
+            }
+            return QualityTier.NORMAL;
         }
     }
 }
