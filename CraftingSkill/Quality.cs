@@ -32,15 +32,17 @@ namespace CraftingSkill
                 QualityTier tier = GetQualityTier(factor);
                 factor = tier.GetFactor();
                 return String.Format(
-                    "{0} ({1})",
-                    GetQualityTier(this.Skill).GetTooltip(),
-                    (factor * 100f).ToString("0")
+                    "{0} ({1}) #debug: {2} {3} {4}",
+                    GetQualityTier(factor).GetTooltip(),
+                    (factor * 100f).ToString("0"),
+                    (Skill * 100f).ToString("0"), Variance, StationLevel
                 );
             }
 
             return String.Format(
-                "{0} / 100",
-                (factor * 100f).ToString("0")
+                "{0} / 100 #debug: {1} {2} {3}",
+                (factor * 100f).ToString("0"),
+                (Skill * 100f).ToString("0"), Variance, StationLevel
             );
         }
 
@@ -53,7 +55,7 @@ namespace CraftingSkill
                 // map 0,1 to -1,+1
                 var variance = 2.0f * (this.Variance - 0.5f);
                 // scale by config, add to factor
-                factor += config.StochasticVariance * variance;
+                factor += (config.StochasticVariance/100.0f) * variance;
                 // clamp invalid values (level 0 and 100)
                 factor = Mathf.Clamp(factor, 0.0f, 1.0f);
             }
@@ -67,8 +69,10 @@ namespace CraftingSkill
         }
         public static QualityTier GetQualityTier(float factor)
         {
+            //Debug.Log("GetQualityTier:   ", factor);
             foreach (QualityTier tier in (QualityTier[])Enum.GetValues(typeof(QualityTier)))
             {
+                //Debug.Log("GetQualityTier -> ", tier.GetFactor(), " >= ", factor, tier.GetFactor() >= factor);
                 if (tier.GetFactor() >= factor)
                 {
                     return tier;

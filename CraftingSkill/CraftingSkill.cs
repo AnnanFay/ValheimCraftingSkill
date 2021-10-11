@@ -249,7 +249,7 @@ namespace CraftingSkill
         }
 
         [HarmonyPatch(typeof(InventoryGui), "DoCrafting")]
-        public static class InventoryGuiPatcher
+        public static class InventoryGuiPatcherDoCrafting
         {
             static int m_crafts;
             static int craftLevel;
@@ -304,6 +304,51 @@ namespace CraftingSkill
                     // ZLog.LogError($"Craft Succeeded => exp={craftExperience}, {SkillLevel}");
                 }
             }
+        }
+
+        [HarmonyPatch(typeof(InventoryGui), "RepairOneItem")]
+        public static class InventoryGuiPatcherRepairOneItem
+        {
+            static int REPAIR_EXPERIENCE = 1;
+
+            // private void RepairOneItem()
+            static void Prefix(InventoryGui __instance,
+                // private fields
+                ItemDrop.ItemData ___m_craftUpgradeItem,
+                int ___m_craftVariant,
+                List<ItemDrop.ItemData> m_tempWornItems
+            )
+            {
+                if (Player.m_localPlayer == null)
+                {
+                    return;
+                }
+                CraftingStation currentCraftingStation = Player.m_localPlayer.GetCurrentCraftingStation();
+                if ((currentCraftingStation == null && !Player.m_localPlayer.NoCostCheat()) 
+                    || ((bool)currentCraftingStation && !currentCraftingStation.CheckUsable(Player.m_localPlayer, showMessage: false)))
+                {
+                    return;
+                }
+                m_tempWornItems.Clear();
+                Player.m_localPlayer.GetInventory().GetWornItems(m_tempWornItems);
+                var CanRepair = __instance.GetType().GetMethod("CanRepair", BindingFlags.NonPublic | BindingFlags.Instance);
+                foreach (ItemDrop.ItemData tempWornItem in m_tempWornItems)
+                {
+                    if ((bool)CanRepair.Invoke(__instance, new object[] { tempWornItem }))
+                    {
+                        // tempWornItem.m_durability = tempWornItem.GetMaxDurability();
+                        Player.m_localPlayer.RaiseSkill((Skills.SkillType)CRAFTING_SKILL_ID, REPAIR_EXPERIENCE);
+                        return;
+                    }
+                }
+            }
+
+            // static void Postfix(InventoryGui __instance, Player player,
+            //     // private fields
+            //     Recipe ___m_craftRecipe
+            // )
+            // {
+            // }
         }
     }
 }

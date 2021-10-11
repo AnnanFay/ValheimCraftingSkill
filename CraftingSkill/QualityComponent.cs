@@ -74,6 +74,9 @@ namespace CraftingSkill
 
         public static void OnNewExtendedItemData(ExtendedItemData itemdata)
         {
+            // This gets triggered on generated items and crafted items
+            // Also on items moved between containers, etc.
+
             // ZLog.LogError("OnNewExtendedItemData!");
             Recipe recipe = ObjectDB.instance.GetRecipe(itemdata);
             if (recipe == null)
@@ -101,6 +104,7 @@ namespace CraftingSkill
                 return;
             }
 
+            // If we get to this point, the current player has just crafted a new item
             var skill = player.GetSkillFactor((Skills.SkillType)CraftingSkillsPlugin.CRAFTING_SKILL_ID);
             var quantity = itemdata.m_stack;
 
@@ -110,6 +114,9 @@ namespace CraftingSkill
             var quality = new StackableQuality(skill, quantity, stationLevel);
 
             itemdata.AddComponent<QualityComponent>().SetQuality(quality);
+
+            // Quality may have changed durability on our new item, so fix it
+            itemdata.m_durability = itemdata.GetMaxDurability();
         }
 
         public static void OnLoadExtendedItemData(ExtendedItemData itemdata)
