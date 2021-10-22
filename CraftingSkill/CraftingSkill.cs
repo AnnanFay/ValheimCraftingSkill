@@ -43,7 +43,7 @@ namespace CraftingSkill
 
             SkillInjector.RegisterNewSkill(CRAFTING_SKILL_ID, "Crafting", "Craft higher quality items as you level", 1.0f, LoadIconTexture(), Skills.SkillType.Unarmed);
 
-            ExtendedItemData.LoadExtendedItemData += QualityComponent.OnNewExtendedItemData;
+            ExtendedItemData.LoadExtendedItemData += QualityComponent.OnLoadExtendedItemData;
             ExtendedItemData.NewExtendedItemData += QualityComponent.OnNewExtendedItemData;
         }
 
@@ -105,6 +105,37 @@ namespace CraftingSkill
             return null;
         }
 
+
+        public static void DropHeadFix(ItemDrop.ItemData item)
+        {
+            // if item stack is less than quality stack remove from front until they match
+            // this happens after using arrows, consuming food, etc.
+
+            QualityComponent comp = item.Extended()?.GetComponent<QualityComponent>();
+            // item will be deleted if required, so no need to handle stack 0 case
+            if (comp != null && item.m_stack > 0 && item.m_stack < comp.Quality.Quantity) {
+                int toRemove = comp.Quality.Quantity - item.m_stack;
+                ZLog.Log("DropHeadFix APPLIED #" + item.Extended()?.GetUniqueId() + " | " + item.m_stack + " < " + comp.Quality.Quantity);
+                comp.Quality.Shift(toRemove);
+            }
+        }
+        
+        public static void DropTailFix(ItemDrop.ItemData item)
+        {
+            // called in handlers explicitly when new item stacks are created
+            // discards fron back of stack until counts match
+
+            QualityComponent comp = item.Extended()?.GetComponent<QualityComponent>();
+            if (comp == null) return;
+
+            ZLog.Log("DropTailFix? #" + item.Extended()?.GetUniqueId() + " | " + item.m_stack + " < " + comp.Quality.Quantity);
+            // item will be deleted if required, so no need to handle stack 0 case
+            if (item.m_stack > 0 && item.m_stack < comp.Quality.Quantity) {
+                int toRemove = comp.Quality.Quantity - item.m_stack;
+                comp.Quality.Pop(toRemove);
+            }
+        }
+
         [HarmonyPatch(typeof(ItemDrop.ItemData))]
         public static class ItemDataPatcher
         {
@@ -145,18 +176,18 @@ namespace CraftingSkill
                 return min + (max - min) * qualityComp.Quality.ScalingFactor(config);
             }
 
-
             // First override the simple methods which returns floats
-                // public float GetArmor(int quality){}
-                // public float GetWeight(){}
-                // public float GetMaxDurability(int quality){}
-                // public float GetBaseBlockPower(int quality){}
-                // public float GetDeflectionForce(int quality){}
+            // public float GetArmor(int quality){}
+            // public float GetWeight(){}
+            // public float GetMaxDurability(int quality){}
+            // public float GetBaseBlockPower(int quality){}
+            // public float GetDeflectionForce(int quality){}
             // public float GetArmor(int quality){}
             [HarmonyPostfix]
             [HarmonyPatch("GetArmor", typeof(int))]
             public static float GetArmor(float __result, ItemDrop.ItemData __instance)
             {
+                DropHeadFix(__instance);
                 return __result * GetItemQualityScalingFactor(__instance, config.ArmorStart, config.ArmorStop);
             }
 
@@ -173,6 +204,7 @@ namespace CraftingSkill
             [HarmonyPatch("GetMaxDurability", typeof(int))]
             public static float GetMaxDurability(float __result, ItemDrop.ItemData __instance)
             {
+                DropHeadFix(__instance);
                 return __result * GetItemQualityScalingFactor(__instance, config.MaxDurabilityStart, config.MaxDurabilityStop);
             }
 
@@ -181,6 +213,7 @@ namespace CraftingSkill
             [HarmonyPatch("GetBaseBlockPower", typeof(int))]
             public static float GetBaseBlockPower(float __result, ItemDrop.ItemData __instance)
             {
+                DropHeadFix(__instance);
                 return __result * GetItemQualityScalingFactor(__instance, config.BaseBlockPowerStart, config.BaseBlockPowerStop);
             }
 
@@ -189,6 +222,7 @@ namespace CraftingSkill
             [HarmonyPatch("GetDeflectionForce", typeof(int))]
             public static float GetDeflectionForce(float __result, ItemDrop.ItemData __instance)
             {
+                DropHeadFix(__instance);
                 return __result * GetItemQualityScalingFactor(__instance, config.DeflectionForceStart, config.DeflectionForceStop);
             }
 
@@ -197,6 +231,7 @@ namespace CraftingSkill
             [HarmonyPatch("GetDamage", typeof(int))]
             public static void GetDamage(ref HitData.DamageTypes __result, ItemDrop.ItemData __instance)
             {
+                DropHeadFix(__instance);
                 float scalingFactor = GetItemQualityScalingFactor(__instance, config.DamageStart, config.DamageStop);
                 __result.Modify(scalingFactor);
             }
@@ -316,7 +351,7 @@ namespace CraftingSkill
                 // private fields
                 ItemDrop.ItemData ___m_craftUpgradeItem,
                 int ___m_craftVariant,
-                List<ItemDrop.ItemData> m_tempWornItems
+                List<ItemDrop.ItemData> ___m_tempWornItems
             )
             {
                 if (Player.m_localPlayer == null)
@@ -329,10 +364,10 @@ namespace CraftingSkill
                 {
                     return;
                 }
-                m_tempWornItems.Clear();
-                Player.m_localPlayer.GetInventory().GetWornItems(m_tempWornItems);
+                ___m_tempWornItems.Clear();
+                Player.m_localPlayer.GetInventory().GetWornItems(___m_tempWornItems);
                 var CanRepair = __instance.GetType().GetMethod("CanRepair", BindingFlags.NonPublic | BindingFlags.Instance);
-                foreach (ItemDrop.ItemData tempWornItem in m_tempWornItems)
+                foreach (ItemDrop.ItemData tempWornItem in ___m_tempWornItems)
                 {
                     if ((bool)CanRepair.Invoke(__instance, new object[] { tempWornItem }))
                     {
@@ -342,13 +377,87 @@ namespace CraftingSkill
                     }
                 }
             }
+        }
 
-            // static void Postfix(InventoryGui __instance, Player player,
-            //     // private fields
-            //     Recipe ___m_craftRecipe
-            // )
-            // {
-            // }
+        [HarmonyPatch]
+        static class ItemDataClonePatches
+        {
+            [HarmonyPatch(typeof(DropTable), "AddItemToList")]
+            static void Postfix(List<ItemDrop.ItemData> toDrop, DropTable.DropData data) {
+                DropTailFix(toDrop.Last());
+            }
+
+            [HarmonyPatch(typeof(Inventory), "AddItem", new Type[] { typeof(ItemDrop.ItemData), typeof(int), typeof(int), typeof(int)})]
+            static void Postfix(Inventory __instance, ItemDrop.ItemData item, int amount, int x, int y) {
+                ZLog.Log("AddItem(amount:" + amount + ", x:"+x+", y:"+y+")");
+
+                var target = __instance.GetItemAt(x, y);
+
+                QualityComponent comp = item.Extended()?.GetComponent<QualityComponent>();
+                ZLog.Log("... AddItem, source #" + item.Extended()?.GetUniqueId() + " | " + comp);
+                if (comp == null) return;
+
+                QualityComponent targetComp = target.Extended()?.GetComponent<QualityComponent>();
+                ZLog.Log("... AddItem, target = #" + target.Extended()?.GetUniqueId() + " | " + targetComp + " " + (targetComp == null ? "NULL" : (target.m_stack + " > " + targetComp.Quality.Quantity)));
+                // existing item, needs extra quality data
+                if (targetComp != null && target.m_stack > targetComp.Quality.Quantity) {
+                    targetComp.Quality.MergeInto(comp.Quality);
+                }
+                DropTailFix(target);
+            }
+
+
+            [HarmonyPatch(typeof(Inventory), "AddItem", new Type[] { typeof(ItemDrop.ItemData) })]
+            static void Postfix(Inventory __instance, ItemDrop.ItemData item, List<ItemDrop.ItemData> ___m_inventory) {
+                // We need to recover from an item stack being automatically spread across multiple stacks in target inventory
+                // Example: Have stacks of 99, 99 and 99 arrows in your inventory. Crafting 20 arrows will deposit 1 arrow
+                // in each stack and 17 in a new stack.
+
+                // item is a reference to item (maybe also in inventory) which we take qualities from as needed
+                // it will likely have more qualities than stacksize, while targets for fixing have more stack than qualities
+
+                QualityComponent comp = item.Extended()?.GetComponent<QualityComponent>();
+                
+                if (comp == null)
+                {
+                    return;
+                }
+
+                var sourceQuality = comp.Quality;
+                if (item.m_shared.m_maxStackSize > 1)
+                {
+                    foreach (ItemDrop.ItemData other in ___m_inventory)
+                    {
+                        if (item.m_shared.m_name != other.m_shared.m_name && item.m_quality != other.m_quality)
+                        {
+                            continue;
+                        }
+
+                        QualityComponent targetComp = other.Extended()?.GetComponent<QualityComponent>();
+                        if (targetComp == null || other.m_stack <= targetComp.Quality.Quantity)
+                        {
+                            continue;
+                        }
+                        var needed = other.m_stack - targetComp.Quality.Quantity;
+                        var quals = sourceQuality.Shift(needed);
+                        targetComp.Quality.Qualities.AddRange(quals);
+
+                        Debug.Assert(other.m_stack == targetComp.Quality.Quantity);
+                        // DropTailFix(target);
+                    }
+                }
+            }
+
+            [HarmonyPatch(typeof(ItemDrop), "DropItem")]
+            static void Postfix(ref ItemDrop __result, ItemDrop.ItemData item, int amount, Vector3 position, Quaternion rotation) {
+                DropTailFix(__result.m_itemData);
+            }
+
+            [HarmonyPatch(typeof(ItemStand), "UpdateAttach")]
+            static void Postfix(ItemStand __instance, ItemDrop.ItemData ___m_queuedItem) {
+                // Drop on the origin item as we can't easily access ZDO stored item
+                DropTailFix(___m_queuedItem);
+            }
         }
     }
 }

@@ -98,7 +98,7 @@ namespace CraftingSkill
                     var serverConfigReceivedDelegateType = (Type)traverse.Type("ServerConfigReceivedDelegate").GetValue();
                     Type[] paramTypes = { typeof(string), typeof(ConfigFile), serverConfigReceivedDelegateType };
                     traverse.Method("RegisterMod", paramTypes).GetValue(mod_id, config, null);
-                } catch (Exception e) {
+                } catch (Exception) {
                     // registering mod failed, API may have changed
                     // pretend MCE doesn't exist
                     assembly = null;

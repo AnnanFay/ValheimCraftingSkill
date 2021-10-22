@@ -23,6 +23,20 @@ namespace CraftingSkill
         {
             Variance = UnityEngine.Random.value;
         }
+        public Quality Clone()
+        {
+            return MemberwiseClone() as Quality;
+        }
+
+        public string DebugInfo() { 
+            return String.Format(
+                   "x{3} x{0} ~{1} L{2}",
+                   Skill,
+                   Variance,
+                   StationLevel,
+                   Quantity
+               );
+        }
 
         public string GetTooltip(CraftingConfig config)
         {
@@ -32,17 +46,16 @@ namespace CraftingSkill
                 QualityTier tier = GetQualityTier(factor);
                 factor = tier.GetFactor();
                 return String.Format(
-                    "{0} ({1}) #debug: {2} {3} {4}",
+                    "{0} ({1}) #debug: {2}",
                     GetQualityTier(factor).GetTooltip(),
                     (factor * 100f).ToString("0"),
-                    (Skill * 100f).ToString("0"), Variance, StationLevel
+                    DebugInfo()
                 );
             }
-
             return String.Format(
-                "{0} / 100 #debug: {1} {2} {3}",
+                "{0} / 100 #debug: {1}",
                 (factor * 100f).ToString("0"),
-                (Skill * 100f).ToString("0"), Variance, StationLevel
+                DebugInfo()
             );
         }
 
