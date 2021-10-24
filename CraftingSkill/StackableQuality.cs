@@ -11,12 +11,11 @@ namespace CraftingSkill
     {
         public List<Quality> Qualities;
 
-        // Defaults return weighted average over stack
-
         public StackableQuality()
         {
             this.Qualities = new List<Quality>();
         }
+        
         public StackableQuality(float skill, int quantity, int stationLevel)
         {
             this.Qualities = new List<Quality>();
@@ -28,6 +27,7 @@ namespace CraftingSkill
 
             Qualities.Add(quality);
         }
+
         public StackableQuality Clone()
         {
             var clone = MemberwiseClone() as StackableQuality;
@@ -41,6 +41,10 @@ namespace CraftingSkill
         public int Quantity
         {
             get {
+                if (Qualities.Count == 0)
+                {
+                    return 0;
+                }
                 return Qualities.Sum(q => q.Quantity);
             }
         }
@@ -48,6 +52,10 @@ namespace CraftingSkill
         {
             get
             {
+                if (Qualities.Count == 0)
+                {
+                    return 0;
+                }
                 //return Qualities.Average(q => q.Skill);
                 return Qualities.First().Skill;
             }
@@ -56,6 +64,10 @@ namespace CraftingSkill
         {
             get
             {
+                if (Qualities.Count == 0)
+                {
+                    return 0;
+                }
                 //return (int)Qualities.Average(q => q.StationLevel);
                 return (int)Qualities.First().StationLevel;
             }
@@ -64,10 +76,24 @@ namespace CraftingSkill
         {
             get
             {
+                if (Qualities.Count == 0)
+                {
+                    return 0;
+                }
                 //return Qualities.Average(q => q.Variance);
                 return Qualities.First().Variance;
             }
         }
+        public float ScalingFactor(CraftingConfig config)
+        {
+                if (Qualities.Count == 0)
+                {
+                    return 0;
+                }
+            return this.Qualities.First().ScalingFactor(config);
+        }
+
+
         public string DebugInfo()
         {
             return " Stack{\n  " + (
@@ -80,7 +106,11 @@ namespace CraftingSkill
 
         public string GetTooltip(CraftingConfig config)
         {
-            if (this.Qualities.Count == 1)
+            if (this.Qualities.Count == 0)
+            {
+                return "CORRUPT QUALITY!" + DebugInfo();
+            }
+            else if (this.Qualities.Count == 1)
             {
                 return this.Qualities[0].GetTooltip(config) + DebugInfo();
             }
@@ -88,10 +118,6 @@ namespace CraftingSkill
             {
                 return "Mixed!" + DebugInfo();
             }
-        }
-        public float ScalingFactor(CraftingConfig config)
-        {
-            return this.Qualities.First().ScalingFactor(config);
         }
 
         internal void MergeInto(StackableQuality other)
@@ -138,6 +164,12 @@ namespace CraftingSkill
                 shifted.Add(toAdd);
                 needed -= toAdd.Quantity;
             }
+
+            // Avoid killing ourself on corrupt data by always preserving one item
+            if (this.Qualities.Count == 0)
+            {
+                this.Qualities.Add(shifted.Last().Clone());
+            }
             return shifted;
         }
 
@@ -150,7 +182,5 @@ namespace CraftingSkill
             this.Qualities.Reverse();
             return popped;
         }
-
-
     }
 }

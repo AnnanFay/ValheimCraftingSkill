@@ -117,6 +117,7 @@ namespace CraftingSkill
                 int toRemove = comp.Quality.Quantity - item.m_stack;
                 ZLog.Log("DropHeadFix APPLIED #" + item.Extended()?.GetUniqueId() + " | " + item.m_stack + " < " + comp.Quality.Quantity);
                 comp.Quality.Shift(toRemove);
+                comp.Save();
             }
         }
         
@@ -134,6 +135,7 @@ namespace CraftingSkill
                 int toRemove = comp.Quality.Quantity - item.m_stack;
                 comp.Quality.Pop(toRemove);
             }
+            comp.Save();
         }
 
         [HarmonyPatch(typeof(ItemDrop.ItemData))]
@@ -402,6 +404,7 @@ namespace CraftingSkill
                 // existing item, needs extra quality data
                 if (targetComp != null && target.m_stack > targetComp.Quality.Quantity) {
                     targetComp.Quality.MergeInto(comp.Quality);
+                    targetComp.Save();
                 }
                 DropTailFix(target);
             }
@@ -440,10 +443,16 @@ namespace CraftingSkill
                         }
                         var needed = other.m_stack - targetComp.Quality.Quantity;
                         var quals = sourceQuality.Shift(needed);
+    ZLog.Log("!!! AddItem, other = #" + other.Extended()?.GetUniqueId() + " | " + targetComp + " " + (targetComp == null ? "NULL" : (other.m_stack + " > " + targetComp.Quality.Quantity)));
                         targetComp.Quality.Qualities.AddRange(quals);
+                        targetComp.Save();
 
                         Debug.Assert(other.m_stack == targetComp.Quality.Quantity);
                         // DropTailFix(target);
+                    }
+    ZLog.Log("!!! AddItem, source = #" + item.Extended()?.GetUniqueId() + " | " + comp + " " + (comp == null ? "NULL" : (item.m_stack + " > " + sourceQuality.Quantity)));
+                    if (sourceQuality.Quantity > 0) {
+                        comp.Save();
                     }
                 }
             }

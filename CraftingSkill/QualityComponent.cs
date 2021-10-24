@@ -27,8 +27,18 @@ namespace CraftingSkill
             Save();
         }
 
+        public override BaseExtendedItemComponent Clone()
+        {
+            // ZLog.LogWarning("Clone! ???, stack: ???, quality stack:" + Quality.Quantity);
+            var clone = MemberwiseClone() as QualityComponent;
+            clone.Quality = this.Quality.Clone();
+            return clone as BaseExtendedItemComponent;
+        }
+
         public override string Serialize()
         {
+            // ZLog.LogError($"[{nameof(QualityComponent)}] Serialising NOW1!!! {JSON.ToJSON(this.Quality, _saveParams)}");
+            // ZLog.LogError($"[{nameof(QualityComponent)}] ................!!! {this.GetTooltip(new CraftingConfig())}");
             return JSON.ToJSON(this.Quality, _saveParams);
         }
 
@@ -55,19 +65,11 @@ namespace CraftingSkill
                 stackable.Qualities.Add(quality);
                 this.Quality = stackable;
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                ZLog.LogError($"[{nameof(QualityComponent)}] Could not deserialize Quality json data! ({ItemData?.m_shared?.m_name})");
+                ZLog.LogError($"[{nameof(QualityComponent)}] Could not deserialize Quality json data! ({ItemData?.m_shared?.m_name}): {e?.Message}");
                 throw;
             }
-        }
-
-        public override BaseExtendedItemComponent Clone()
-        {
-            ZLog.LogWarning("Clone! ???, stack: ???, quality stack:" + Quality.Quantity);
-            var clone = MemberwiseClone() as QualityComponent;
-            clone.Quality = this.Quality.Clone();
-            return clone as BaseExtendedItemComponent;
         }
 
         public string GetTooltip(CraftingConfig config)
@@ -83,7 +85,7 @@ namespace CraftingSkill
             {
                 ZLog.LogWarning("Load EID! " + itemdata.m_shared.m_name + ", stack:" + itemdata.m_stack + ", quality stack:" + _qualityComponent.Quality.Quantity);
             } else {
-                ZLog.LogWarning("Load EID! " + itemdata.m_shared.m_name + ", No existing quality! stack:" + itemdata.m_stack);
+                ZLog.LogWarning("Load EID! " + itemdata.m_shared.m_name + ", stack:" + itemdata.m_stack);
             }
             OnExtendedItemData(itemdata);
         }
@@ -95,7 +97,7 @@ namespace CraftingSkill
             {
                 ZLog.LogWarning("New EID! " + itemdata + ", stack:" + itemdata.m_stack + ", quality stack:" + _qualityComponent.Quality.Quantity);
             } else {
-                ZLog.LogWarning("New EID! " + itemdata + ", No existing quality! stack:" + itemdata.m_stack);
+                ZLog.LogWarning("New EID! " + itemdata + ", stack:" + itemdata.m_stack);
             }
             OnExtendedItemData(itemdata);
         }
@@ -103,7 +105,6 @@ namespace CraftingSkill
         public static void OnExtendedItemData(ExtendedItemData itemdata)
         {
             // This gets triggered on generated items and crafted items
-            // NOPE NOPE NOPE.... ? ~~Also on items moved between containers, etc.~~
 
             Recipe recipe = ObjectDB.instance.GetRecipe(itemdata);
             if (recipe == null)
@@ -145,15 +146,5 @@ namespace CraftingSkill
             // Quality may have changed durability on our new item, so fix it
             itemdata.m_durability = itemdata.GetMaxDurability();
         }
-
-        //public static void OnLoadExtendedItemData(ExtendedItemData itemdata)
-        //{
-            // ZLog.LogError("OnLoadExtendedItemData!");
-            // QualityComponent qualityComponent = itemdata.GetComponent<QualityComponent>();
-            // if (qualityComponent != null)
-            // {
-            //     ZLog.LogError("qualityComponent! q.Skill=" + qualityComponent.Quality.Skill);
-            // }
-        //}
     }
 }
