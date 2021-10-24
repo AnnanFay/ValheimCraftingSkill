@@ -301,9 +301,9 @@ namespace CraftingSkill
             // See also (added at some point after above list):
             //  - $piece_artisanstation
             //  - $piece_oven
-            string craftingStationName = recipe?.m_craftingStation?.m_name;
-            if (craftingStationName == null) return false;
+            if (recipe == null) return false;
 
+            string craftingStationName = recipe?.m_craftingStation?.m_name;
             bool isNoStation         = craftingStationName == null;
             bool isForgeRecipe       = craftingStationName == "$piece_forge";
             bool isWorkbenchRecipe   = craftingStationName == "$piece_workbench";

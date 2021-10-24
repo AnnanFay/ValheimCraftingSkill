@@ -86,11 +86,11 @@ namespace CraftingSkill
         }
         public float ScalingFactor(CraftingConfig config)
         {
-                if (Qualities.Count == 0)
-                {
-                    return 0;
-                }
-            return this.Qualities.First().ScalingFactor(config);
+            if (Qualities.Count == 0)
+            {
+                return 0;
+            }
+            return this.Qualities.First().ScalingFactor(config.StochasticVariance, config.QuantisedQuality);
         }
 
 
@@ -123,7 +123,7 @@ namespace CraftingSkill
         }
         public string StackSummary(CraftingConfig config)
         {
-            var sorted = this.Qualities.Select(x => x.ScalingFactor(config));
+            var sorted = this.Qualities.Select(x => x.ScalingFactor(config.StochasticVariance, config.QuantisedQuality));
             var min = sorted.Min();
             var max = sorted.Max();
             return "(" + (min * 100f).ToString("0") + "-" + (max * 100f).ToString("0") + ")";

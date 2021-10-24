@@ -132,10 +132,18 @@ namespace CraftingSkill
                 return;
             }
 
+            // items are added on player load, in which case there won't be a current station, unless the no cost cheat active
+            // we still cannot avoid setting quality on hammers, torches, etc.
+
+            var currentStation = player.GetCurrentCraftingStation();
+            var requiredStation = recipe.GetRequiredStation(itemdata.m_quality);
+            if (!player.NoCostCheat() && requiredStation != null && currentStation?.m_name != requiredStation?.m_name) {
+                return;
+            }
+
             QualityComponent qualityComponent = itemdata.GetComponent<QualityComponent>();
             if (qualityComponent != null)
             {
-                ZLog.LogWarning("qualityComponent is not null during ExtendedItemData creation");
                 return;
             }
 

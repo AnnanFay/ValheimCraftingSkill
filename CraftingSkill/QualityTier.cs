@@ -40,17 +40,17 @@ namespace CraftingSkill
         {
             switch (tier)
             {
-                // numbers are the tops of bins
+                // numbers are the bottoms of bins
                 // So Awful is from 0 to 6
                 // Poor from 7 22
                 // Artifact is 100 only
-                case QualityTier.AWFUL:       return 0.06f;
-                case QualityTier.POOR:        return 0.22f;
-                case QualityTier.NORMAL:      return 0.38f;
-                case QualityTier.FINE:        return 0.54f;
-                case QualityTier.SUPERIOR:    return 0.70f;
-                case QualityTier.EXCEPTIONAL: return 0.86f;
-                case QualityTier.MASTERWORK:  return 0.99f;
+                case QualityTier.AWFUL:       return 0.00f;
+                case QualityTier.POOR:        return 0.07f;
+                case QualityTier.NORMAL:      return 0.23f;
+                case QualityTier.FINE:        return 0.39f;
+                case QualityTier.SUPERIOR:    return 0.55f;
+                case QualityTier.EXCEPTIONAL: return 0.71f;
+                case QualityTier.MASTERWORK:  return 0.87f;
                 case QualityTier.ARTIFACT:    return 1.00f;
             }
             return 0;
