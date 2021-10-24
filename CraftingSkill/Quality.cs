@@ -23,57 +23,76 @@ namespace CraftingSkill
         {
             Variance = UnityEngine.Random.value;
         }
+        public Quality Clone()
+        {
+            return MemberwiseClone() as Quality;
+        }
+
+        public string DebugInfo() { 
+            return String.Format(
+                   "x{3} x{0} ~{1} L{2}",
+                   Skill,
+                   Variance,
+                   StationLevel,
+                   Quantity
+               );
+        }
 
         public string GetTooltip(CraftingConfig config)
         {
-            float factor = ScalingFactor(config);
+            string debugInfo = config.DebugTooltips ? " #debug: " + DebugInfo() : "";
+
+            float factor = ScalingFactor(config.StochasticVariance, config.QuantisedQuality);
             if (config.QuantisedQuality)
             {
                 QualityTier tier = GetQualityTier(factor);
-                factor = tier.GetFactor();
+                float preQuantisation = ScalingFactor(config.StochasticVariance, false);
                 return String.Format(
-                    "{0} ({1}) #debug: {2} {3} {4}",
-                    GetQualityTier(factor).GetTooltip(),
-                    (factor * 100f).ToString("0"),
-                    (Skill * 100f).ToString("0"), Variance, StationLevel
+                    "{0} ({1} [{2}]){3}",
+                    (preQuantisation * 100f).ToString("0"),
+                    tier.GetTooltip(),
+                    (tier.GetFactor() * 100f).ToString("0"),
+                    debugInfo
                 );
             }
-
             return String.Format(
-                "{0} / 100 #debug: {1} {2} {3}",
+                "{0} / 100 ({1}){2}",
                 (factor * 100f).ToString("0"),
-                (Skill * 100f).ToString("0"), Variance, StationLevel
+                GetQualityTier(factor).GetTooltip(),
+                debugInfo
             );
         }
 
-        public float ScalingFactor(CraftingConfig config)
+        public float ScalingFactor(float StochasticVariance, bool QuantisedQuality)
         {
             var factor = this.Skill;
 
-            if (config.StochasticVariance > 0)
+            if (StochasticVariance > 0)
             {
                 // map 0,1 to -1,+1
                 var variance = 2.0f * (this.Variance - 0.5f);
                 // scale by config, add to factor
-                factor += (config.StochasticVariance/100.0f) * variance;
+                factor += (StochasticVariance / 100.0f) * variance;
                 // clamp invalid values (level 0 and 100)
                 factor = Mathf.Clamp(factor, 0.0f, 1.0f);
             }
 
-            if (config.QuantisedQuality)
+            if (QuantisedQuality)
             {
                 QualityTier tier = GetQualityTier(factor);
                 factor = tier.GetFactor();
             }
             return factor;
         }
+
         public static QualityTier GetQualityTier(float factor)
         {
             //Debug.Log("GetQualityTier:   ", factor);
-            foreach (QualityTier tier in (QualityTier[])Enum.GetValues(typeof(QualityTier)))
+            var tiers = (QualityTier[])Enum.GetValues(typeof(QualityTier));
+            foreach (QualityTier tier in tiers.OrderByDescending(x => x))
             {
                 //Debug.Log("GetQualityTier -> ", tier.GetFactor(), " >= ", factor, tier.GetFactor() >= factor);
-                if (tier.GetFactor() >= factor)
+                if (tier.GetFactor() <= factor)
                 {
                     return tier;
                 }

@@ -27,8 +27,18 @@ namespace CraftingSkill
             Save();
         }
 
+        public override BaseExtendedItemComponent Clone()
+        {
+            // ZLog.LogWarning("Clone! ???, stack: ???, quality stack:" + Quality.Quantity);
+            var clone = MemberwiseClone() as QualityComponent;
+            clone.Quality = this.Quality.Clone();
+            return clone as BaseExtendedItemComponent;
+        }
+
         public override string Serialize()
         {
+            // ZLog.LogError($"[{nameof(QualityComponent)}] Serialising NOW1!!! {JSON.ToJSON(this.Quality, _saveParams)}");
+            // ZLog.LogError($"[{nameof(QualityComponent)}] ................!!! {this.GetTooltip(new CraftingConfig())}");
             return JSON.ToJSON(this.Quality, _saveParams);
         }
 
@@ -38,8 +48,9 @@ namespace CraftingSkill
             {
                 this.Quality = JSON.ToObject<StackableQuality>(data, _saveParams);
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                ZLog.LogError($"[{nameof(QualityComponent)}] Error while deserialising Quality json data! ({ItemData?.m_shared?.m_name}): {e?.Message}");
                 LegacyDeserialize(data);
             }
         }
@@ -54,16 +65,11 @@ namespace CraftingSkill
                 stackable.Qualities.Add(quality);
                 this.Quality = stackable;
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                ZLog.LogError($"[{nameof(QualityComponent)}] Could not deserialize Quality json data! ({ItemData?.m_shared?.m_name})");
+                ZLog.LogError($"[{nameof(QualityComponent)}] Could not deserialize Quality json data! ({ItemData?.m_shared?.m_name}): {e?.Message}");
                 throw;
             }
-        }
-
-        public override BaseExtendedItemComponent Clone()
-        {
-            return MemberwiseClone() as BaseExtendedItemComponent;
         }
 
         public string GetTooltip(CraftingConfig config)
@@ -72,14 +78,43 @@ namespace CraftingSkill
             return this.Quality.GetTooltip(config);
         }
 
+        public static void OnLoadExtendedItemData(ExtendedItemData itemdata)
+        {
+            QualityComponent _qualityComponent = itemdata.GetComponent<QualityComponent>();
+            if (CraftingSkillsPlugin.config.DebugTooltips)
+            {
+                if (_qualityComponent != null)
+                {
+                    ZLog.LogWarning("Load EID! " + itemdata.m_shared.m_name + ", stack:" + itemdata.m_stack + ", quality stack:" + _qualityComponent.Quality.Quantity);
+                } else {
+                    ZLog.LogWarning("Load EID! " + itemdata.m_shared.m_name + ", stack:" + itemdata.m_stack);
+                }
+            }
+            OnExtendedItemData(itemdata);
+        }
+        
         public static void OnNewExtendedItemData(ExtendedItemData itemdata)
         {
-            // This gets triggered on generated items and crafted items
-            // Also on items moved between containers, etc.
+            QualityComponent _qualityComponent = itemdata.GetComponent<QualityComponent>();
 
-            // ZLog.LogError("OnNewExtendedItemData!");
+            if (CraftingSkillsPlugin.config.DebugTooltips)
+            {
+                if (_qualityComponent != null)
+                {
+                    ZLog.LogWarning("New EID! " + itemdata + ", stack:" + itemdata.m_stack + ", quality stack:" + _qualityComponent.Quality.Quantity);
+                } else {
+                    ZLog.LogWarning("New EID! " + itemdata + ", stack:" + itemdata.m_stack);
+                }
+            }
+            OnExtendedItemData(itemdata);
+        }
+
+        public static void OnExtendedItemData(ExtendedItemData itemdata)
+        {
+            // This gets triggered on generated items and crafted items
+
             Recipe recipe = ObjectDB.instance.GetRecipe(itemdata);
-            if (recipe == null)
+            if (!CraftingSkillsPlugin.isCraftingRecipe(recipe))
             {
                 return;
             }
@@ -97,10 +132,18 @@ namespace CraftingSkill
                 return;
             }
 
+            // items are added on player load, in which case there won't be a current station, unless the no cost cheat active
+            // we still cannot avoid setting quality on hammers, torches, etc.
+
+            var currentStation = player.GetCurrentCraftingStation();
+            var requiredStation = recipe.GetRequiredStation(itemdata.m_quality);
+            if (!player.NoCostCheat() && requiredStation != null && currentStation?.m_name != requiredStation?.m_name) {
+                return;
+            }
+
             QualityComponent qualityComponent = itemdata.GetComponent<QualityComponent>();
             if (qualityComponent != null)
             {
-                ZLog.LogWarning("qualityComponent is not null during ExtendedItemData creation");
                 return;
             }
 
@@ -117,16 +160,6 @@ namespace CraftingSkill
 
             // Quality may have changed durability on our new item, so fix it
             itemdata.m_durability = itemdata.GetMaxDurability();
-        }
-
-        public static void OnLoadExtendedItemData(ExtendedItemData itemdata)
-        {
-            // ZLog.LogError("OnLoadExtendedItemData!");
-            // QualityComponent qualityComponent = itemdata.GetComponent<QualityComponent>();
-            // if (qualityComponent != null)
-            // {
-            //     ZLog.LogError("qualityComponent! q.Skill=" + qualityComponent.Quality.Skill);
-            // }
         }
     }
 }

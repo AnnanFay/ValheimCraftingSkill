@@ -18,6 +18,7 @@ namespace CraftingSkill
     {
         private ConfigVariable<bool> __QuantisedQuality       = new ConfigVariable<bool>("General", "QuantisedQuality", false);
         private ConfigVariable<float> __StochasticVariance    = new ConfigVariable<float>("General", "StochasticVariance", 0.0f);
+        private ConfigVariable<bool> __DebugTooltips          = new ConfigVariable<bool>("General", "DebugTooltips", false);
 
         // Experience for crafting
         private ConfigVariable<float> __ExpScapeTier          = new ConfigVariable<float>("ExpGain", "ExpScapeTier", 1.0f);
@@ -54,6 +55,7 @@ namespace CraftingSkill
         // Utility getters
         public bool QuantisedQuality             {get => __QuantisedQuality.Value; }
         public float StochasticVariance          {get => __StochasticVariance.Value; }
+        public bool DebugTooltips                {get => __DebugTooltips.Value; }
         public float ExpScapeTier                {get => __ExpScapeTier.Value; }
         public float ExpScapePower               {get => __ExpScapePower.Value; }
         public float ExpScapeLinear              {get => __ExpScapeLinear.Value; }
@@ -98,7 +100,7 @@ namespace CraftingSkill
                     var serverConfigReceivedDelegateType = (Type)traverse.Type("ServerConfigReceivedDelegate").GetValue();
                     Type[] paramTypes = { typeof(string), typeof(ConfigFile), serverConfigReceivedDelegateType };
                     traverse.Method("RegisterMod", paramTypes).GetValue(mod_id, config, null);
-                } catch (Exception e) {
+                } catch (Exception) {
                     // registering mod failed, API may have changed
                     // pretend MCE doesn't exist
                     assembly = null;
@@ -111,6 +113,7 @@ namespace CraftingSkill
 
             __QuantisedQuality.init(assembly, config, mod_id);
             __StochasticVariance.init(assembly, config, mod_id);
+            __DebugTooltips.init(assembly, config, mod_id);
             __ExpScapeTier.init(assembly, config, mod_id);
             __ExpScapePower.init(assembly, config, mod_id);
             __ExpScapeLinear.init(assembly, config, mod_id);
