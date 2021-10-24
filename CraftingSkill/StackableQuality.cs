@@ -118,10 +118,16 @@ namespace CraftingSkill
             }
             else
             {
-                return "Mixed!" + debugInfo;
+                return "Mixed! " + StackSummary(config) + debugInfo;
             }
         }
-
+        public string StackSummary(CraftingConfig config)
+        {
+            var sorted = this.Qualities.Select(x => x.ScalingFactor(config));
+            var min = sorted.Min();
+            var max = sorted.Max();
+            return "(" + (min * 100f).ToString("0") + "-" + (max * 100f).ToString("0") + ")";
+        }
         internal void MergeInto(StackableQuality other)
         {
             other.Qualities.ForEach(q => {

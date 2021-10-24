@@ -114,7 +114,7 @@ namespace CraftingSkill
             // This gets triggered on generated items and crafted items
 
             Recipe recipe = ObjectDB.instance.GetRecipe(itemdata);
-            if (recipe == null)
+            if (!CraftingSkillsPlugin.isCraftingRecipe(recipe))
             {
                 return;
             }
