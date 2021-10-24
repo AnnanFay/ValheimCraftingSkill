@@ -106,17 +106,19 @@ namespace CraftingSkill
 
         public string GetTooltip(CraftingConfig config)
         {
+            string debugInfo = CraftingSkillsPlugin.config.DebugTooltips ? DebugInfo() : "";
+
             if (this.Qualities.Count == 0)
             {
-                return "CORRUPT QUALITY!" + DebugInfo();
+                return "CraftingQuality<CORRUPT> Debug Info: " + DebugInfo();
             }
             else if (this.Qualities.Count == 1)
             {
-                return this.Qualities[0].GetTooltip(config) + DebugInfo();
+                return this.Qualities[0].GetTooltip(config) + debugInfo;
             }
             else
             {
-                return "Mixed!" + DebugInfo();
+                return "Mixed!" + debugInfo;
             }
         }
 

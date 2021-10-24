@@ -40,22 +40,24 @@ namespace CraftingSkill
 
         public string GetTooltip(CraftingConfig config)
         {
+            string debugInfo = config.DebugTooltips ? " #debug: " + DebugInfo() : "";
+
             float factor = ScalingFactor(config);
             if (config.QuantisedQuality)
             {
                 QualityTier tier = GetQualityTier(factor);
                 factor = tier.GetFactor();
                 return String.Format(
-                    "{0} ({1}) #debug: {2}",
+                    "{0} ({1}){2}",
                     GetQualityTier(factor).GetTooltip(),
                     (factor * 100f).ToString("0"),
-                    DebugInfo()
+                    debugInfo
                 );
             }
             return String.Format(
-                "{0} / 100 #debug: {1}",
+                "{0} / 100{1}",
                 (factor * 100f).ToString("0"),
-                DebugInfo()
+                debugInfo
             );
         }
 

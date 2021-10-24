@@ -22,12 +22,12 @@ namespace CraftingSkill
     {
         public const String MOD_ID = "annanfay.mod.crafting_skill";
         public const string MOD_NAME = "CraftingSkill";
-        public const string MOD_VERSION = "0.0.2";
+        public const string MOD_VERSION = "0.0.3";
         public const int CRAFTING_SKILL_ID = 1605;
 
         Harmony harmony;
 
-        private static CraftingConfig config = new CraftingConfig();
+        public static CraftingConfig config = new CraftingConfig();
         private static Dictionary<string, Texture2D> cachedTextures = new Dictionary<string, Texture2D>();
 
         public CraftingSkillsPlugin() {
@@ -115,7 +115,10 @@ namespace CraftingSkill
             // item will be deleted if required, so no need to handle stack 0 case
             if (comp != null && item.m_stack > 0 && item.m_stack < comp.Quality.Quantity) {
                 int toRemove = comp.Quality.Quantity - item.m_stack;
-                ZLog.Log("DropHeadFix APPLIED #" + item.Extended()?.GetUniqueId() + " | " + item.m_stack + " < " + comp.Quality.Quantity);
+                if (config.DebugTooltips)
+                {
+                    ZLog.Log("DropHeadFix APPLIED #" + item.Extended()?.GetUniqueId() + " | " + item.m_stack + " < " + comp.Quality.Quantity);
+                }
                 comp.Quality.Shift(toRemove);
                 comp.Save();
             }
@@ -129,7 +132,10 @@ namespace CraftingSkill
             QualityComponent comp = item.Extended()?.GetComponent<QualityComponent>();
             if (comp == null) return;
 
-            ZLog.Log("DropTailFix? #" + item.Extended()?.GetUniqueId() + " | " + item.m_stack + " < " + comp.Quality.Quantity);
+            if (config.DebugTooltips)
+            {
+                ZLog.Log("DropTailFix? #" + item.Extended()?.GetUniqueId() + " | " + item.m_stack + " < " + comp.Quality.Quantity);
+            }
             // item will be deleted if required, so no need to handle stack 0 case
             if (item.m_stack > 0 && item.m_stack < comp.Quality.Quantity) {
                 int toRemove = comp.Quality.Quantity - item.m_stack;
@@ -160,7 +166,7 @@ namespace CraftingSkill
                     );
                 }
                 Recipe recipe = ObjectDB.instance.GetRecipe(item);
-                if (recipe != null) {
+                if (isCraftingRecipe(recipe)) {
                     __result += String.Format(
                         "\n{0}: <color=orange>{1}</color>",
                         CraftExperienceLabel,
@@ -285,6 +291,27 @@ namespace CraftingSkill
             return exp;
         }
 
+        public static bool isCraftingRecipe(Recipe recipe)
+        {
+            // # Full list of stations used in recipes as of 0.147.3:
+            // # - identifier: `$piece_forge` in game name: Forge
+            // # - identifier: `$piece_workbench` in game name: Workbench
+            // # - identifier: `$piece_cauldron` in game name: Cauldron
+            // # - identifier: `$piece_stonecutter` in game name: Stonecutter
+            // See also (added at some point after above list):
+            //  - $piece_artisanstation
+            //  - $piece_oven
+            string craftingStationName = recipe?.m_craftingStation?.m_name;
+            if (craftingStationName == null) return false;
+
+            bool isNoStation         = craftingStationName == null;
+            bool isForgeRecipe       = craftingStationName == "$piece_forge";
+            bool isWorkbenchRecipe   = craftingStationName == "$piece_workbench";
+            bool isStonecutterRecipe = craftingStationName == "$piece_stonecutter";
+            bool isArtisanRecipe     = craftingStationName == "$piece_artisanstation";
+            return isWorkbenchRecipe || isForgeRecipe || isNoStation || isStonecutterRecipe || isArtisanRecipe;
+        }
+
         [HarmonyPatch(typeof(InventoryGui), "DoCrafting")]
         public static class InventoryGuiPatcherDoCrafting
         {
@@ -318,23 +345,7 @@ namespace CraftingSkill
                     return;
                 }
                 // ZLog.LogError($"Craft Succeeded? {___m_craftRecipe.m_item.m_itemData.m_shared.m_name} {craftLevel} {___m_craftRecipe.m_craftingStation?.m_name}");
-
-                // # Full list of stations used in recipes as of 0.147.3:
-                // # - identifier: `$piece_forge` in game name: Forge
-                // # - identifier: `$piece_workbench` in game name: Workbench
-                // # - identifier: `$piece_cauldron` in game name: Cauldron
-                // # - identifier: `$piece_stonecutter` in game name: Stonecutter
-                // See also (added at some point after above list):
-                //  - $piece_artisanstation
-                //  - $piece_oven
-
-                string craftingStationName = ___m_craftRecipe.m_craftingStation?.m_name;
-                bool isNoStation         = craftingStationName == null;
-                bool isForgeRecipe       = craftingStationName == "$piece_forge";
-                bool isWorkbenchRecipe   = craftingStationName == "$piece_workbench";
-                bool isStonecutterRecipe = craftingStationName == "$piece_stonecutter";
-                bool isArtisanRecipe     = craftingStationName == "$piece_artisanstation";
-                if (isWorkbenchRecipe || isForgeRecipe || isNoStation || isStonecutterRecipe || isArtisanRecipe) {
+                if (isCraftingRecipe(___m_craftRecipe)) {
                     float craftExperience = GetCraftExperience(___m_craftRecipe, craftLevel);
                     player.RaiseSkill((Skills.SkillType)CRAFTING_SKILL_ID, craftExperience);
                     // float SkillLevel = player.GetSkillFactor((Skills.SkillType)CRAFTING_SKILL_ID);
@@ -391,16 +402,25 @@ namespace CraftingSkill
 
             [HarmonyPatch(typeof(Inventory), "AddItem", new Type[] { typeof(ItemDrop.ItemData), typeof(int), typeof(int), typeof(int)})]
             static void Postfix(Inventory __instance, ItemDrop.ItemData item, int amount, int x, int y) {
-                ZLog.Log("AddItem(amount:" + amount + ", x:"+x+", y:"+y+")");
+                if (config.DebugTooltips)
+                {
+                    ZLog.Log("AddItem(amount:" + amount + ", x:"+x+", y:"+y+")");
+                }
 
                 var target = __instance.GetItemAt(x, y);
 
                 QualityComponent comp = item.Extended()?.GetComponent<QualityComponent>();
-                ZLog.Log("... AddItem, source #" + item.Extended()?.GetUniqueId() + " | " + comp);
+                if (config.DebugTooltips)
+                {
+                    ZLog.Log("... AddItem, source #" + item.Extended()?.GetUniqueId() + " | " + comp);
+                }
                 if (comp == null) return;
 
                 QualityComponent targetComp = target.Extended()?.GetComponent<QualityComponent>();
-                ZLog.Log("... AddItem, target = #" + target.Extended()?.GetUniqueId() + " | " + targetComp + " " + (targetComp == null ? "NULL" : (target.m_stack + " > " + targetComp.Quality.Quantity)));
+                if (config.DebugTooltips)
+                {
+                    ZLog.Log("... AddItem, target = #" + target.Extended()?.GetUniqueId() + " | " + targetComp + " " + (targetComp == null ? "NULL" : (target.m_stack + " > " + targetComp.Quality.Quantity)));
+                }
                 // existing item, needs extra quality data
                 if (targetComp != null && target.m_stack > targetComp.Quality.Quantity) {
                     targetComp.Quality.MergeInto(comp.Quality);
@@ -443,14 +463,12 @@ namespace CraftingSkill
                         }
                         var needed = other.m_stack - targetComp.Quality.Quantity;
                         var quals = sourceQuality.Shift(needed);
-    ZLog.Log("!!! AddItem, other = #" + other.Extended()?.GetUniqueId() + " | " + targetComp + " " + (targetComp == null ? "NULL" : (other.m_stack + " > " + targetComp.Quality.Quantity)));
                         targetComp.Quality.Qualities.AddRange(quals);
                         targetComp.Save();
 
                         Debug.Assert(other.m_stack == targetComp.Quality.Quantity);
                         // DropTailFix(target);
                     }
-    ZLog.Log("!!! AddItem, source = #" + item.Extended()?.GetUniqueId() + " | " + comp + " " + (comp == null ? "NULL" : (item.m_stack + " > " + sourceQuality.Quantity)));
                     if (sourceQuality.Quantity > 0) {
                         comp.Save();
                     }

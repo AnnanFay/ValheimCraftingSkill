@@ -81,11 +81,14 @@ namespace CraftingSkill
         public static void OnLoadExtendedItemData(ExtendedItemData itemdata)
         {
             QualityComponent _qualityComponent = itemdata.GetComponent<QualityComponent>();
-            if (_qualityComponent != null)
+            if (CraftingSkillsPlugin.config.DebugTooltips)
             {
-                ZLog.LogWarning("Load EID! " + itemdata.m_shared.m_name + ", stack:" + itemdata.m_stack + ", quality stack:" + _qualityComponent.Quality.Quantity);
-            } else {
-                ZLog.LogWarning("Load EID! " + itemdata.m_shared.m_name + ", stack:" + itemdata.m_stack);
+                if (_qualityComponent != null)
+                {
+                    ZLog.LogWarning("Load EID! " + itemdata.m_shared.m_name + ", stack:" + itemdata.m_stack + ", quality stack:" + _qualityComponent.Quality.Quantity);
+                } else {
+                    ZLog.LogWarning("Load EID! " + itemdata.m_shared.m_name + ", stack:" + itemdata.m_stack);
+                }
             }
             OnExtendedItemData(itemdata);
         }
@@ -93,11 +96,15 @@ namespace CraftingSkill
         public static void OnNewExtendedItemData(ExtendedItemData itemdata)
         {
             QualityComponent _qualityComponent = itemdata.GetComponent<QualityComponent>();
-            if (_qualityComponent != null)
+
+            if (CraftingSkillsPlugin.config.DebugTooltips)
             {
-                ZLog.LogWarning("New EID! " + itemdata + ", stack:" + itemdata.m_stack + ", quality stack:" + _qualityComponent.Quality.Quantity);
-            } else {
-                ZLog.LogWarning("New EID! " + itemdata + ", stack:" + itemdata.m_stack);
+                if (_qualityComponent != null)
+                {
+                    ZLog.LogWarning("New EID! " + itemdata + ", stack:" + itemdata.m_stack + ", quality stack:" + _qualityComponent.Quality.Quantity);
+                } else {
+                    ZLog.LogWarning("New EID! " + itemdata + ", stack:" + itemdata.m_stack);
+                }
             }
             OnExtendedItemData(itemdata);
         }
