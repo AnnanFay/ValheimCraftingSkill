@@ -1,5 +1,6 @@
 # ValheimCraftingSkill
-Adds a simple crafting skill to the game.
+
+A simple Valheim mod which adds a crafting skill to the game.
 
 ### Requirements:
 
@@ -37,6 +38,30 @@ Default configuration:
 - TierModifierStonecutter   1
 - TierModifierArtisan       2
 - TierModifierDefault       0
+
+### Todo
+
+#### Features:
+
+* Variance should never decrease
+* 'Reforge' an item at max quality to reroll variance and update craft level
+* Armour number rounding in inventory
+
+#### Known Bugs
+
+* Dropped stack size gets reset to 1 when picked up
+* Random game crash. Unknown cause.
+* NullPointerException in log. Doesn't appear to cause issues except for error message:
+```
+    [Error  : Unity Log] NullReferenceException: Object reference not set to an instance of an object
+    Stack trace:
+    Humanoid.SetupVisEquipment (VisEquipment visEq, System.Boolean isRagdoll) (at <260a7c02345c4086b640f239744206f0>:0)
+    Player.SetupVisEquipment (VisEquipment visEq, System.Boolean isRagdoll) (at <260a7c02345c4086b640f239744206f0>:0)
+    ExtendedItemDataFramework.Player_Patch+WatchExtendedItemDataOnEquipment_Player_Update_Patch.Postfix (Player __instance) (at <67fcacf4676c4bb083c4a471673662ad>:0)
+    (wrapper dynamic-method) Player.DMD<Player::Update>(Player)
+```
+* Enabling mod will attach 0 quality to items which don't require a crafting station (stone weapons, torch, hammer, etc.)
+
 
 ### Code inspired by:
 
