@@ -15,16 +15,9 @@ namespace CraftingSkill
         {
             this.Qualities = new List<Quality>();
         }
-        
-        public StackableQuality(float skill, int quantity, int stationLevel)
+
+        public StackableQuality(Quality quality) : this()
         {
-            this.Qualities = new List<Quality>();
-
-            var quality = new Quality();
-            quality.Skill = skill;
-            quality.Quantity = quantity;
-            quality.StationLevel = stationLevel;
-
             Qualities.Add(quality);
         }
 

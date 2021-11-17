@@ -6,6 +6,7 @@ using fastJSON;
 using HarmonyLib;
 using UnityEngine;
 using UnityEngine.UI;
+using static CraftingSkill.CraftingSkillsPlugin;
 using Object = UnityEngine.Object;
 
 namespace CraftingSkill
@@ -154,9 +155,14 @@ namespace CraftingSkill
             CraftingStation station = player.GetCurrentCraftingStation();
             int stationLevel = station == null ? 0 : station.GetLevel();
 
-            var quality = new StackableQuality(skill, quantity, stationLevel);
+            var quality = new Quality(skill, quantity, stationLevel);
+            // if we are upgrading an item
+            if (InventoryGuiPatcherDoCrafting.preUpgradeQuality != null) {
+                var prevVariance = InventoryGuiPatcherDoCrafting.preUpgradeQuality.Variance;
+                quality.Variance = Math.Max(quality.Variance, prevVariance);
+            }
 
-            itemdata.AddComponent<QualityComponent>().SetQuality(quality);
+            itemdata.AddComponent<QualityComponent>().SetQuality(new StackableQuality(quality));
 
             // Quality may have changed durability on our new item, so fix it
             itemdata.m_durability = itemdata.GetMaxDurability();

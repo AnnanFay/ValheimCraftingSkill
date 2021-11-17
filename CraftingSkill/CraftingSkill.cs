@@ -3,6 +3,7 @@ using HarmonyLib;
 using Pipakin.SkillInjectorMod;
 using System;
 using UnityEngine;
+using UnityEngine.UI;
 using ExtendedItemDataFramework;
 using System.IO;
 using System.Reflection;
@@ -318,6 +319,12 @@ namespace CraftingSkill
             static int m_crafts;
             static int craftLevel;
 
+            // Before upgrading an item we store quality here 
+            // so we can access it when the new item is created!
+            // Item is created between prefix and postfix in the original DoCrafting
+            // In postfix this field is nullified
+            public static StackableQuality preUpgradeQuality;
+
             // private void DoCrafting(Player player)
             static void Prefix(InventoryGui __instance, Player player,
                 // private fields
@@ -326,8 +333,17 @@ namespace CraftingSkill
             )
             {
                 // ZLog.LogError($"[{nameof(InventoryGui)}] pre crafting hook");
-                craftLevel = ((___m_craftUpgradeItem == null) ? 1 : (___m_craftUpgradeItem.m_quality + 1));
+                if (___m_craftUpgradeItem != null) {
+                    craftLevel = ___m_craftUpgradeItem.m_quality + 1;
+                    QualityComponent comp = ___m_craftUpgradeItem.Extended()?.GetComponent<QualityComponent>();
+                    if (comp != null) {
+                        preUpgradeQuality = comp.Quality;
+                    }
+                } else {
+                    craftLevel = 1;
+                }
                 m_crafts = Game.instance.GetPlayerProfile().m_playerStats.m_crafts;
+
             }
 
             static void Postfix(InventoryGui __instance, Player player,
@@ -335,6 +351,8 @@ namespace CraftingSkill
                 Recipe ___m_craftRecipe
             )
             {
+                // this MUST be nullified or new items will be bugged
+                preUpgradeQuality = null;
 
                 // ZLog.LogError($"[{nameof(InventoryGui)}] post crafting hook");
                 int new_m_crafts = Game.instance.GetPlayerProfile().m_playerStats.m_crafts;
@@ -389,6 +407,21 @@ namespace CraftingSkill
                         return;
                     }
                 }
+            }
+        }
+
+        [HarmonyPatch(typeof(InventoryGui), "UpdateCharacterStats")]
+        public static class InventoryGuiPatcherUpdateCharacterStats
+        {
+            // private void UpdateCharacterStats(Player player)
+            static void Postfix(InventoryGui __instance,
+                Player player,
+                // private fields
+                Text ___m_armor
+            )
+            {
+                float bodyArmor = player.GetBodyArmor();
+                ___m_armor.text = $"{bodyArmor:0.00}";
             }
         }
 

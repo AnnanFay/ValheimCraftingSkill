@@ -43,9 +43,7 @@ Default configuration:
 
 #### Features:
 
-* Variance should never decrease
 * 'Reforge' an item at max quality to reroll variance and update craft level
-* Armour number rounding in inventory
 
 #### Known Bugs
 

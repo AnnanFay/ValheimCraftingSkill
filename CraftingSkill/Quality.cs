@@ -23,6 +23,14 @@ namespace CraftingSkill
         {
             Variance = UnityEngine.Random.value;
         }
+
+        public Quality(float skill, int quantity, int stationLevel) : this()
+        {
+            Skill = skill;
+            Quantity = quantity;
+            StationLevel = stationLevel;
+        }
+
         public Quality Clone()
         {
             return MemberwiseClone() as Quality;
