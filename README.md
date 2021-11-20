@@ -2,7 +2,12 @@
 
 A simple Valheim mod which adds a crafting skill to the game.
 
-### Requirements:
+As you level up the crafting skill items you create will become better quality (increased durability, damage, etc). Craft quality is attached to item data so other players with the mod installed will gain the affects. By default your skill level is the only element which affects item stats with most increases going from -20% at level 1 to +30% at level 100.
+
+"StochasticVariance" can be enabled in the settings to add a random element to every crafted item. "QuantisedQuality" lets you replace gradual increases (levels 1 to 100) with fixed thresholds (Normal, Fine, Superior, etc.)
+
+
+### Requirements
 
 - [BepInEx](https://github.com/BepInEx/BepInEx) ([thunderstore](https://valheim.thunderstore.io/package/denikson/BepInExPack_Valheim/))
 - [Skill Injector](https://github.com/pipakin/PipakinsMods/tree/master/SkillInjector) ([nexus](https://www.nexusmods.com/valheim/mods/341))
@@ -41,15 +46,17 @@ Default configuration:
 
 ### Todo
 
-#### Features:
+#### Features to add
 
 * 'Reforge' an item at max quality to reroll variance and update craft level
 
 #### Known Bugs
 
-* Dropped stack size gets reset to 1 when picked up
-* Random game crash. Unknown cause.
-* NullPointerException in log. Doesn't appear to cause issues except for error message:
+* [MAJOR ISSUE] Dropped stack size gets set to 1 when picked up in multiplayer games (looking into fixing asap)
+* Nails get attached quality (doesn't do anything), and items genereted by deconstructing a building have no quality (nails)
+* Enabling mod will attach 0 quality to items which don't require a crafting station (stone weapons, torch, hammer, etc.)
+* Random game crash. Unknown cause. See #1 (please report if you get this!)
+* NullPointerException in log whenever player equips or unequips items. Doesn't appear to cause issues except for error message:
 ```
     [Error  : Unity Log] NullReferenceException: Object reference not set to an instance of an object
     Stack trace:
@@ -58,10 +65,9 @@ Default configuration:
     ExtendedItemDataFramework.Player_Patch+WatchExtendedItemDataOnEquipment_Player_Update_Patch.Postfix (Player __instance) (at <67fcacf4676c4bb083c4a471673662ad>:0)
     (wrapper dynamic-method) Player.DMD<Player::Update>(Player)
 ```
-* Enabling mod will attach 0 quality to items which don't require a crafting station (stone weapons, torch, hammer, etc.)
+* Fire/Frost arrows may give too much Experience
 
-
-### Code inspired by:
+### Code inspired by
 
 - For general project layout and config system: [SailingSkill by gaijinx](https://github.com/gaijinx/valheim_mods/tree/main/sailing_skill)
 - For examples of *using* ExtendedItemData: [EpicLoot by RandyKnapp](https://github.com/RandyKnapp/ValheimMods/tree/main/EpicLoot)
